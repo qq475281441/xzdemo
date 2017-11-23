@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="google" content="notranslate"/>
+    <title>Title</title>
+</head>
+<body>
+<script src="{:url('Index/apiConfig',['fid'=>$fid])}"></script>
+<script>
+        pageConfig=JSON.parse(pageConfig);
+        console.log(pageConfig);
+
+        userInfo=JSON.parse(userInfo);
+        console.log(userInfo);
+
+        voteList=JSON.parse(voteList);
+        console.log(voteList);
+</script>
+</body>
+</html>

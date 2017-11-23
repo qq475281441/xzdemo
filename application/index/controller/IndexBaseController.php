@@ -27,43 +27,5 @@ class IndexBaseController extends BaseController {
 		parent::_initialize ();
 	}
 	
-	/**
-	 * 将登录数据缓存起来
-	 * @internal param type $data
-	 */
-	public function login_cache ()
-	{
-		if ( !Session::has ('user') ) {
-			return;
-		}
-		$ip = $this->request->ip (0, TRUE);
-		$content = [
-			'username' => Session::get ('user')[ 'username' ],
-			'fid' => Session::get ('user')[ 'fid' ],
-			'isshui' => Session::get ('user')[ 'isshui' ],
-			'group' => Session::get ('user')[ 'group' ],
-			'time' => time (),
-			'ip' => $ip,
-			'address' => get_area ($ip)
-		];
-		$userhis = new Userhis();
-		
-		$userhis->login ($content);
-	}
 	
-	/**
-	 * 判断是否登录了房间
-	 *
-	 * @param $fid
-	 *
-	 * @return bool
-	 */
-	public function is_login_room ($fid)
-	{
-		if ( trim ($this->getFlist ($fid)[ 'fpassword' ]) != "" && !Session::has ('fpassword') ) {
-			return FALSE;
-		} else {
-			return TRUE;
-		}
-	}
 }

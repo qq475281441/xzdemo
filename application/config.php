@@ -243,9 +243,9 @@ return [
 		'list_rows' => 15,
 	],
 	'VERSION' => '1.0',
-	'gatewayHost' => '120.78.134.174:7373',
+	'gatewayHost' => 'xz.zhouwenping.top:7373',
 	//gateway服务连接地址
-	'registerAddress' => '172.18.113.6:1238',
+	'registerAddress' => '10.140.0.3:1238',
 	//register服务地址
 	'PUBLIC_SALT' => 'sdFJDjfjd12FDJDF',
 ];

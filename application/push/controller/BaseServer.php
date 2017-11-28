@@ -27,7 +27,16 @@ abstract class BaseServer {
 	public function __construct ()
 	{
 		if ( isset($this->config[ 'gateway' ]) && $this->config[ 'gateway' ] != '' ) {
-			$gateway = new Gateway($this->config[ 'gateway' ][ 'address' ]);
+			$context = [
+				'ssl' => [
+					'local_cert' => '/ssl/ssl.pem',
+					// 或者crt文件
+					'local_pk' => '/ssl/ssl.key',
+					'verify_peer' => FALSE
+				]
+			];
+			$gateway = new Gateway($this->config[ 'gateway' ][ 'address' ], $context);
+			$gateway->transport = 'ssl';//开启wss
 			// 设置名称，方便status时查看
 			$gateway->name = $this->config[ 'gateway' ][ 'name' ];
 			// 设置进程数，gateway进程数建议与cpu核数相同

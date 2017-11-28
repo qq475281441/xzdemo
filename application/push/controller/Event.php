@@ -9,13 +9,18 @@
 namespace app\push\controller;
 
 use \GatewayWorker\Lib\Gateway;
+use think\Log;
 
 class Event {
+	protected static $redis;
+	
 	/**
 	 * 进程启动后初始化数据库连接
 	 */
 	public static function onWorkerStart ($worker)
 	{
+		self::$redis = new \Redis();
+		self::$redis->connect ('127.0.0.1', 6379);
 	}
 	
 	/**
@@ -31,13 +36,27 @@ class Event {
 		echo "client:{$_SERVER['REMOTE_ADDR']}:{$_SERVER['REMOTE_PORT']} gateway:{$_SERVER['GATEWAY_ADDR']}:{$_SERVER['GATEWAY_PORT']}  client_id:$client_id session:" . json_encode ($_SESSION) . " onMessage:" . $message . "\n";
 		// 使用数据库实例
 		// 客户端传递的是json数据
-		$message_data = json_decode ($message, TRUE);
 		
+		$message_data = json_decode ($message, TRUE);
 		switch ($message_data[ 'type' ]) {
 			case 'login':
 				Gateway::bindUid ($client_id, $message_data[ 'uid' ]);
+				
+				unset($message_data[ 'type' ]);
+				Gateway::setSession ($client_id, $message_data);
+				echo 'user:' . $message_data[ 'username' ] . 'login success';
+				//				echo "ip=" . request ()->ip (0, TRUE) . "\n";
 				break;
-			
+			case 'buy':
+				$returnMsg[ 'type' ] = "buy_return";
+				$returnMsg[ 'msg' ] = "已加入抢购队列，请稍等";
+				$p = [
+					'userid' => $message_data[ 'userid' ],
+					'seat' => $message_data[ 'seat_id' ]
+				];
+				$r = self::$redis->lPush ('task', json_encode ($p));
+				Gateway::sendToCurrentClient (json_encode ($returnMsg));
+				break;
 			default:
 				break;
 		}

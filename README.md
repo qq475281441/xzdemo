@@ -25,6 +25,9 @@ nginx/1.10.2
 服务器：google/1核1G
 系统：centos7.2
 
+演示地址:
+[演示地址](https://xz.zhouwenping.top)  
+
 ## 抢购问题：
 使用redis队列进行购买操作，解决抢购时的高并发和超售的问题
 

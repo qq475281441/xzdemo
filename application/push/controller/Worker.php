@@ -37,6 +37,16 @@ class Worker extends BaseServer {
 			$this->redis->connect ('127.0.0.1', 6379);
 			$this->timmer ($this->time_interval, $this->redis);
 		};
+		
+		//实例化一个后台定时任务
+		$task = new \Workerman\Worker();
+		$task->name = 'ClearTaskServers';
+		// 开启多少个进程运行定时任务，注意业务是否在多进程有并发问题
+		$task->count = 1;
+		$task->onWorkerStart = function ($task) {
+			$this->time_interval = 5;//每0.5秒处理一次
+			$this->clear_timmer ($this->time_interval);
+		};
 		parent::__construct ();
 	}
 	
@@ -69,6 +79,7 @@ class Worker extends BaseServer {
 								$task_return[ 'msg' ] = "订单失败,座位{$v->seat_id}已售出";
 								$useful = 0;
 								#订单失败
+								Gateway::sendToUid ($data->userid, json_encode ($task_return));
 								continue;
 							} else {
 								$all_price += $v->price;
@@ -105,7 +116,7 @@ class Worker extends BaseServer {
 									$task_return[ 'msg' ] = "抢购失败";
 									db ()->rollback ();
 								} else {
-									$task_return[ 'msg' ] = "恭喜，抢购成功";
+									$task_return[ 'msg' ] = "恭喜，抢购成功，您有五分钟的支付时间";
 									$task_return[ 'data' ] = Orders::get ($orders_result);
 									echo "生成订单成功\n";
 									db ()->commit ();
@@ -133,6 +144,57 @@ class Worker extends BaseServer {
 				}
 				Gateway::sendToUid ($data->userid, json_encode ($task_return));
 			}
+		});
+	}
+	
+	/**
+	 * 定时清理过期订单
+	 *
+	 * @param $time_interval
+	 */
+	private function clear_timmer ($time_interval)
+	{
+		Timer::add ($time_interval, function () {
+			$orders = Orders::all (function ($order) {
+				$order->where ("create_time", '<=', time () - 300)->where ('is_clean', 0);//超过300s不支付并且未被清理的订单
+			}, 'item');
+			$itemArr = [];
+			$cleanArr = [];
+			if ( $orders ) {
+				foreach ( $orders as $order ) {
+					foreach ( $order->item as $o ) {
+						$itemArr[] = $o->seat_id;
+					}
+					$cleanArr[] = $order->id;
+				}
+				
+				Seat::update (['used' => 1], [
+					'id' => [
+						'in',
+						$itemArr
+					]
+				
+				]);
+				
+				Orders::update (['is_clean' => 1], [
+					'id' => [
+						'in',
+						$cleanArr
+					]
+				]);
+				echo "清理过期订单成功\n";
+				
+				#重新输出已售座位表
+				$seats = Seat::all (function ($seat) {
+					$seat->where ('used', 0);
+				});
+				
+				$returnMsg[ 'type' ] = 'unuseful';
+				$returnMsg[ 'data' ] = $seats;
+				$returnMsg[ 'msg' ] = "已被选择的座位";
+				Gateway::sendToAll (json_encode ($returnMsg));
+			}
+			
 		});
 	}
 }

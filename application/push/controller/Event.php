@@ -8,8 +8,12 @@
 
 namespace app\push\controller;
 
+use app\common\model\Seat;
+use app\common\model\Users;
 use \GatewayWorker\Lib\Gateway;
+use think\Cache;
 use think\Log;
+use think\Session;
 
 class Event {
 	protected static $redis;
@@ -40,18 +44,45 @@ class Event {
 		$message_data = json_decode ($message, TRUE);
 		switch ($message_data[ 'type' ]) {
 			case 'login':
+				$user = Users::get ($message_data[ 'uid' ]);
+				
+				if ( !$user ) {
+					Gateway::closeCurrentClient ();
+					
+					return;
+				}
+				$token = Cache::get ($user[ 'id' ]);
+				if ( $token != $message_data[ 'token' ] || !isset($message_data[ 'token' ]) ) {
+					Gateway::closeCurrentClient ();
+					
+					return;
+				}
+				Gateway::setSession ($client_id, $user->toArray ());
 				Gateway::bindUid ($client_id, $message_data[ 'uid' ]);
 				
-				unset($message_data[ 'type' ]);
-				Gateway::setSession ($client_id, $message_data);
-				echo 'user:' . $message_data[ 'username' ] . 'login success';
-				//				echo "ip=" . request ()->ip (0, TRUE) . "\n";
+				#输出已售座位表
+				$seats = Seat::all (function ($seat) {
+					$seat->where ('used', 0);
+				});
+				
+				$returnMsg[ 'type' ] = 'unuseful';
+				$returnMsg[ 'data' ] = $seats;
+				$returnMsg[ 'msg' ] = "已被选择的座位";
+				Gateway::sendToCurrentClient (json_encode ($returnMsg));
+				
+				Gateway::sendToCurrentClient (json_encode ($_SERVER));
 				break;
 			case 'buy':
+				$user = Gateway::getSession ($client_id);
+				if ( !$user ) {
+					Gateway::closeCurrentClient ();
+					
+					return;
+				}
 				$returnMsg[ 'type' ] = "buy_return";
 				$returnMsg[ 'msg' ] = "已加入抢购队列，请稍等";
 				$p = [
-					'userid' => $message_data[ 'userid' ],
+					'userid' => $user[ 'id' ],
 					'seat' => $message_data[ 'seat_id' ]
 				];
 				$r = self::$redis->lPush ('task', json_encode ($p));

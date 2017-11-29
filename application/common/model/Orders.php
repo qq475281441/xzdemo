@@ -4,7 +4,10 @@ namespace app\common\model;
 
 use think\Model;
 
-class Orders extends Model
-{
-    //
+class Orders extends Model {
+	//
+	public function item ()
+	{
+		return $this->hasMany ('OrdersItem', 'oid', 'id');
+	}
 }

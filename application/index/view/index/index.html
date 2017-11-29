@@ -1,6 +1,6 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
-<head runat="server">
-    <title></title>
+<head>
+    <title>购票demo</title>
 
     <style>
         .seats-block {
@@ -13,7 +13,7 @@
         .seats-block .row-id-container {
             width: 20px;
             float: left;
-            margin-top: 112px;
+            margin-top: 0px;
             white-space: normal;
         }
 
@@ -39,7 +39,7 @@
             margin-left: 25px;
             overflow: auto;
             position: relative;
-            padding-top: 112px;
+            /*padding-top: 112px;*/
         }
 
         .seats-block .screen-container {
@@ -52,7 +52,7 @@
 
         .seats-block .screen-container .screen {
             width: 550px;
-            padding-top: 50px;
+            /*padding-top: 50px;*/
             text-align: center;
             font-size: 16px;
             color: #666;
@@ -136,6 +136,7 @@
 
         .edit {
             list-style: none;
+            width: 500px;
         }
 
         .edit li {
@@ -154,6 +155,11 @@
             cursor: pointer;
             color: #ffc107;
         }
+
+        .orders a {
+            color: #e83e8c;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -167,10 +173,10 @@
     </div>
 
     <div class="seats-container">
-        <div class="screen-container" style="left: 805px;">
-            <div class="screen">舞台</div>
-            <div class="c-screen-line"></div>
-        </div>
+        <!--<div class="screen-container" style="left: 805px;">-->
+            <!--<div class="screen">舞台</div>-->
+            <!--<div class="c-screen-line"></div>-->
+        <!--</div>-->
 
 
         {volist name='$seat' id='data'}
@@ -180,7 +186,7 @@
             <div class="row">
                 {volist name='$d' id='i'}
                 <span class="seat selectable" data-column-id="{$i.col}" data-row-id="{$i.row}"
-                      data-seat-id="{$i.seat_id}"></span>
+                      data-seat-id="{$i.seat_id}" data-id="{$i.id}" data-price="{$i.price}"></span>
                 {/volist}
             </div>
 
@@ -191,11 +197,20 @@
 </div>
 
 <div class="buy">
-    <ul class="edit">
+    <ul class="edit" style="float:left;margin-left: 50px;">
         <li>欢迎：{$user.username}</li>
         <li style="height: 40px;line-height: 40px" class="selected_seat">选择(单次限购五张)：</li>
         <li>总价：<span class="price">0</span></li>
         <li class="btn_buy">抢票</li>
+    </ul>
+
+    <ul class="orders" style="float:left;margin-left: 100px;text-align: left;overflow: auto;height: 250px;">
+        <li style="font-size: 20px">订单信息</li>
+        {volist name='orders' id='o'}
+        <li>订单号:{$o.order_number},剩余支付时间<span class="time">{if condition="$paytime-($time-strtotime($o.create_time)) <
+            0"}0s{else/}{$paytime-($time-strtotime($o.create_time))}</span>s。<a>去支付</a>{/if}
+        </li>
+        {/volist}
     </ul>
 </div>
 
@@ -205,6 +220,8 @@
 <script>
     WEB_SOCKET_SWF_LOCATION = "/static/web/swf/WebSocketMain.swf";
     WEB_SOCKET_DEBUG = false;
+    RECOMMEND = {$recommend};
+    TOKEN = '{$token}';
     connect();
 
     function connect() {
@@ -221,8 +238,12 @@
     };
 
     function onopen() {
-        var login_data = '{"type":"login","username":"{$user.username}","uid":"{$user.id}"}';
-        ws.send(login_data);
+        var data = new Object();
+        data.type = "login";
+        data.username = "{$user.username}";
+        data.uid = "{$user.id}";
+        data.token = TOKEN;
+        ws.send(JSON.stringify(data));
     };
 
     function onmessage(e) {
@@ -233,6 +254,14 @@
                 break;
             case "task_return":
                 alert(data.msg);
+                location.reload();
+                break;
+            case 'unuseful':
+//                $("span.seat").css('background', 'url("/static/img/seat-selectable.png") no-repeat');
+                $.each(data.data, function (index, value) {
+                    $("span.seat[data-id='" + value.id + "']").css('background-image', ' url("/static/img/seat-unuserable.png")');
+//                    $("span.seat[data-id='" + value.id + "']").unbind();
+                })
                 break;
         }
     }
@@ -246,23 +275,31 @@
             $(this).click(function () {
                 if ($(this).hasClass('selected')) {
                     $(this).removeClass('selected');
+                    $(this).css('background', 'url("/static/img/seat-selectable.png") no-repeat');
                     selected_count--;
-                    all_price -= 99;
+                    all_price -= $(this).data('price');
                     $(".price").text(all_price);
                     seat_id = $(this).data("seat-id");
-                    buy_arr.pop('seat_id');
+                    buy_arr.pop($(this).data("id"));
                     $("span.stick[data-seat-id='" + seat_id + "']").remove();
+
                 } else {
                     if (selected_count >= 5) {
                         alert('每人单次限购5张');
                     } else {
-                        $(this).addClass('selected');
-                        selected_count++;
-                        seat_id = $(this).data("seat-id");
-                        buy_arr.push(seat_id);
-                        $("li.selected_seat").append("<span class='stick' data-seat-id='" + seat_id + "'>" + seat_id + "</span>");
-                        all_price += 99;
-                        $(".price").text(all_price);
+                        console.log($(this).attr("style"));
+                        if ($(this).attr("style") == 'background: url("/static/img/seat-unuserable.png") no-repeat;') {
+                            alert('该座位已被订购');
+                        } else {
+                            $(this).addClass('selected');
+                            $(this).css('background-image', ' url("/static/img/seat-selected.png")');
+                            selected_count++;
+                            seat_id = $(this).data("seat-id");
+                            buy_arr.push($(this).data("id"));
+                            $("li.selected_seat").append("<span class='stick' data-seat-id='" + seat_id + "'>" + seat_id + "</span>");
+                            all_price += $(this).data('price');
+                            $(".price").text(all_price);
+                        }
                     }
                 }
 //                console.log(buy_arr);
@@ -272,10 +309,34 @@
         $(".btn_buy").click(function () {
             var send_obj = new Object();
             send_obj.type = 'buy';
-            send_obj.userid = '{$user.id}';
             send_obj.seat_id = buy_arr;
             ws.send(JSON.stringify(send_obj));
         })
+
+
+        $(".orders a").click(function () {
+            alert('支付过程略');
+        })
+
+        setInterval(function () {
+            $('span.time').each(function () {
+                if ($(this).text() > 0) {
+                    $(this).text($(this).text() - 1);
+                }
+            })
+        }, 1000);
+
+        $.each(RECOMMEND, function (index, value) {
+            selected_count++;
+            buy_arr.push(value.id);
+            $("span.seat[data-id='" + value.id + "']").addClass('selected');
+            $("span.seat[data-id='" + value.id + "']").css('backgroung', ' url("/static/img/seat-selected.png")');
+
+            $("li.selected_seat").append("<span class='stick' data-seat-id='" + value.seat_id + "'>" + value.seat_id + "</span>");
+            all_price += value.price;
+            $(".price").text(all_price);
+        })
+
 
     })
 </script>

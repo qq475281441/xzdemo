@@ -41,6 +41,7 @@ nginx/1.10.2
 
 ## 部分代码
 ##### redis队列处理
+/application/push/controller/Worker.php
 <pre>
 Timer::add ($time_interval, function () use ($redis) {
 			while ( 1 ) {//判断队列
@@ -132,8 +133,9 @@ Timer::add ($time_interval, function () use ($redis) {
 
 </pre>
 ##### 座位推荐算法
+/application/index/controller/Index.php
 <pre>
-#得到可用的座位
+# 得到可用的座位
 		$seat = $this->get_head_item ($limit);
 		$this->recommendList[] = $seat;//推荐座位
 		$recommendNum = 5;//推荐个数

@@ -16,16 +16,16 @@
 推荐座位时按照优先级从大到小开始推荐
 
 # 系统架构
-框架：thinkphp5+workerman-gatewayworker
 
-php/7.1.7
-mysql/5.5.56
-nginx/1.10.2
+1. 框架：thinkphp5+workerman-gatewayworker
+1. php/7.1.7
+1. mysql/5.5.56
+1. nginx/1.10.2
 
-服务器：google/1核1G
-系统：centos7.2
+1. 服务器：google/1核1G
+1. 系统：centos7.2
 
-演示地址:
+1. 演示地址:
 [演示地址](https://xz.zhouwenping.top)  
 
 ## 抢购问题：
